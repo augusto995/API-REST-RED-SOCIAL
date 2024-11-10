@@ -1,4 +1,5 @@
 //Importar dependencias y modulos
+const bcrypt = require('bcryptjs');
 const User = require("../models/user");
 
 //Acciones de prueba
@@ -11,7 +12,7 @@ const pruebaUser = (req,res) => {
 
 //Registro de usuarios
 
-const register = (req, res) => {
+const register = async (req, res) => {
     //Recoger datos de la peticion
     let params = req.body;
     //Comprobar que me llegan + validacion
@@ -23,33 +24,48 @@ const register = (req, res) => {
         });
     }
 
-    //Crear objeto de usuario
-    let userToSave = new User(params)
-    //Comprobar usuarios dup!licados
-    User.find({$or: [
-        {email: userToSave.email.toLowerCase()},
-        {nick: userToSave.nick.toLowerCase()},
-    ]}).exec((error, users) => {
-        if(error) return res.status(500).json({status: "error", message:"Error en la consulta de usuarios "});
+    // Crear objeto de usuario
+    let userToSave = new User(params);
 
-        if(users && users.length >=1){
-            return res.status(200).json({
-                status: "succes",
-                message: "Accion de registro de usuarios"
-            })
-        }
-        //Cifrar la contraseña
-        //Guardar usuario en la bdd
-        //Devolver resultado
-        return res.status(200).json({
-            status: "succes",
-            message: "Accion de registro de usuarios",
-            params,
-            userToSave
+    try {
+        // Comprobar usuarios duplicados usando async/await en lugar de exec(callback)
+        const users = await User.find({
+            $or: [
+                { email: userToSave.email.toLowerCase() },
+                { nick: userToSave.nick.toLowerCase() },
+            ]
         });
-        
-    }) 
-}
+
+        if (users && users.length >= 1) {
+            return res.status(200).json({
+                status: "error",
+                message: "El usuario ya existe en el sistema"
+            });
+        }
+
+        // Generar la "sal" y cifrar la contraseña
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(userToSave.password, salt);
+        userToSave.password = hashedPassword;
+
+        // Guardar el usuario en la base de datos
+        const savedUser = await userToSave.save();
+        console.log(userToSave)
+
+        return res.status(200).json({
+            status: "success",
+            message: "Usuario registrado exitosamente",
+            user: savedUser
+        });
+
+    } catch (error) {
+        console.error("Error en el proceso de registro:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el proceso de registro"
+        });
+    }
+};
 
 //Exportar Acciones
 module.exports = {
