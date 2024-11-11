@@ -6,6 +6,7 @@ const UserController = require("../controllers/user")
 
 router.get("/prueba-usuario", UserController.pruebaUser);
 router.post("/register", UserController.register);
+router.post("/login", UserController.login);
 
 //Exportar el router
 

@@ -67,8 +67,17 @@ const register = async (req, res) => {
     }
 };
 
+
+const login = (req, res) =>{
+    return res.status(200).send({
+        status: "succes",
+        message: "Accion de login"
+    })
+}
+
 //Exportar Acciones
 module.exports = {
     pruebaUser,
-    register
+    register,
+    login
 }
