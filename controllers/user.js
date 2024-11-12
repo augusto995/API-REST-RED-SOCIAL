@@ -69,10 +69,28 @@ const register = async (req, res) => {
 
 
 const login = (req, res) =>{
-    return res.status(200).send({
-        status: "succes",
-        message: "Accion de login"
-    })
+    let params = req.body;
+
+    if(!!params.email || !params.password){
+        return res.status(400).json({
+            status: "error",
+            message: "Faltan datos por enviar"
+        }); 
+    }
+    User.findOne({email: params.email})
+        .select({"password": 0})
+        .exec((error, user) =>{
+        if(error || !user) return res.status(404).json({
+            status: "error",
+            message: "No existe el usuario"
+        });  
+
+        return res.status(200).send({
+            status: "succes",
+            message: "Accion de login",
+            user
+        })
+    })   
 }
 
 //Exportar Acciones
