@@ -68,30 +68,62 @@ const register = async (req, res) => {
 };
 
 
-const login = (req, res) =>{
+const login = async (req, res) => {
     let params = req.body;
 
-    if(!!params.email || !params.password){
+    // Validar que los datos requeridos estén presentes
+    if (!params.email || !params.password) {
         return res.status(400).json({
             status: "error",
             message: "Faltan datos por enviar"
-        }); 
+        });
     }
-    User.findOne({email: params.email})
-        .select({"password": 0})
-        .exec((error, user) =>{
-        if(error || !user) return res.status(404).json({
-            status: "error",
-            message: "No existe el usuario"
-        });  
 
-        return res.status(200).send({
-            status: "succes",
-            message: "Accion de login",
-            user
-        })
-    })   
-}
+    try {
+        // Buscar el usuario en la base de datos
+        const user = await User.findOne({ email: params.email.toLowerCase() });
+
+        // Verificar si el usuario existe
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "No existe el usuario"
+            });
+        }
+
+        // Comprobar la contraseña
+        const isPasswordCorrect = bcrypt.compareSync(params.password, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(400).json({
+                status: "error",
+                message: "No te has identificado correctamente"
+            });
+        }
+
+        // Aquí generaremos el token en el futuro, por ahora lo dejamos como `false`
+        const token = false;
+
+        // Enviar respuesta con el usuario y el token
+        return res.status(200).json({
+            status: "success",
+            message: "Te has identificado correctamente",
+            user: {
+                id: user._id,
+                name: user.name,
+                nick: user.nick,
+                email: user.email // Agregué el email por si necesitas mostrarlo en el frontend
+            },
+            token
+        });
+
+    } catch (error) {
+        console.error("Error en el proceso de login:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Error en el proceso de login"
+        });
+    }
+};
 
 //Exportar Acciones
 module.exports = {
